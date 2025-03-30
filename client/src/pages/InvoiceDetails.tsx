@@ -11,6 +11,7 @@ import { ChevronLeft, FileText, ExternalLink, Edit, Download } from "lucide-reac
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { Invoice } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
+import PDFViewer from "@/components/invoices/PDFViewer";
 
 export default function InvoiceDetails() {
   const [, setLocation] = useLocation();
@@ -53,7 +54,7 @@ export default function InvoiceDetails() {
         </Button>
         <Card>
           <CardHeader>
-            <Skeleton className="h-8 w-[250px]" />
+            <Skeleton className="h-8 w-[250px]"  />
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -215,101 +216,13 @@ export default function InvoiceDetails() {
         {/* Display PDF tab - handles both pdf_link and pdf_base64 */}
         {(invoice_header.pdf_link || invoice_header.pdf_base64) && (
           <TabsContent value="pdf" className="mt-0">
-            <Card className="w-full overflow-hidden">
-              <CardContent className="p-0">
-                <div className="w-full bg-gray-100 flex flex-col">
-                  <div className="p-4 bg-white border-b flex justify-between items-center">
-                    <h3 className="text-lg font-medium">Invoice PDF Document</h3>
-                    <div className="flex gap-2">
-                      {/* Download Button */}
-                      {invoice_header.pdf_base64 && (
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          onClick={() => {
-                            const linkSource = `data:application/pdf;base64,${invoice_header.pdf_base64}`;
-                            const downloadLink = document.createElement("a");
-                            const fileName = `Invoice_${invoice_header.invoice_num}.pdf`;
-                            
-                            downloadLink.href = linkSource;
-                            downloadLink.download = fileName;
-                            downloadLink.click();
-                          }}
-                        >
-                          <Download className="mr-2 h-4 w-4" />
-                          Download
-                        </Button>
-                      )}
-                      
-                      {/* Open in new tab buttons */}
-                      {invoice_header.pdf_link && (
-                        <Button variant="outline" size="sm" onClick={() => window.open(invoice_header.pdf_link, "_blank")}>
-                          <ExternalLink className="mr-2 h-4 w-4" />
-                          Open in New Tab
-                        </Button>
-                      )}
-                      {invoice_header.pdf_base64 && !invoice_header.pdf_link && (
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          onClick={() => {
-                            const pdfWindow = window.open('', '_blank');
-                            if (pdfWindow) {
-                              pdfWindow.document.write(`
-                                <html>
-                                  <head>
-                                    <title>Invoice ${invoice_header.invoice_num} PDF</title>
-                                  </head>
-                                  <body style="margin:0;padding:0;overflow:hidden">
-                                    <iframe 
-                                      src="data:application/pdf;base64,${invoice_header.pdf_base64}" 
-                                      style="border:none;width:100%;height:100vh"
-                                    ></iframe>
-                                  </body>
-                                </html>
-                              `);
-                            }
-                          }}
-                        >
-                          <ExternalLink className="mr-2 h-4 w-4" />
-                          Open in New Tab
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                  <div className="w-full h-[800px]">
-                    {invoice_header.pdf_link ? (
-                      // Display PDF from link
-                      <iframe 
-                        src={invoice_header.pdf_link} 
-                        title={`Invoice ${invoice_header.invoice_num} PDF`}
-                        className="w-full h-full border-0"
-                        allow="fullscreen"
-                      />
-                    ) : invoice_header.pdf_base64 ? (
-                      // Display PDF from base64 data
-                      <iframe 
-                        src={`data:application/pdf;base64,${invoice_header.pdf_base64}`}
-                        title={`Invoice ${invoice_header.invoice_num} PDF`}
-                        className="w-full h-full border-0"
-                        allow="fullscreen"
-                      />
-                    ) : (
-                      // Fallback if no PDF data is available
-                      <div className="flex items-center justify-center h-full">
-                        <div className="text-center">
-                          <FileText className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                          <h3 className="text-lg font-medium text-gray-900">PDF Not Available</h3>
-                          <p className="text-sm text-gray-500">
-                            The PDF document for this invoice is not available.
-                          </p>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            <PDFViewer 
+              pdfData={{
+                pdf_link: invoice_header.pdf_link,
+                pdf_base64: invoice_header.pdf_base64
+              }}
+              invoiceNum={invoice_header.invoice_num}
+            />
           </TabsContent>
         )}
       </Tabs>

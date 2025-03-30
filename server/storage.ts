@@ -13,6 +13,7 @@ export interface IStorage {
   updateInvoiceHeader(invoiceNum: string, data: Partial<InvoiceHeader>): Promise<Invoice | null>;
   getAnalyticsSummary(filters?: any): Promise<InvoiceSummary>;
   getVendorList(): Promise<string[]>;
+  getVendorSummary(): Promise<any[]>;
 }
 
 export class MongoStorage implements IStorage {
@@ -119,14 +120,27 @@ export class MongoStorage implements IStorage {
       );
       
       // If the stored amount doesn't match the calculated amount, update it
-      if (invoice.invoice_header.invoice_amount !== totalAmount) {
+      if (invoice.invoice_header.invoice_amount !== totalAmount || !invoice.invoice_header.to_usd) {
+        // Convert to USD if needed
+        let toUsd = totalAmount;
+        if (invoice.invoice_header.currency_code === "INR") {
+          toUsd = totalAmount / 83; // Using approximate INR to USD conversion
+        } else if (invoice.invoice_header.currency_code === "EUR") {
+          toUsd = totalAmount * 1.08; // Using approximate EUR to USD conversion
+        }
+        
         await collection.updateOne(
           { "invoice_header.invoice_num": invoice.invoice_header.invoice_num },
-          { $set: { "invoice_header.invoice_amount": totalAmount } }
+          { $set: { 
+              "invoice_header.invoice_amount": totalAmount,
+              "invoice_header.to_usd": toUsd
+            } 
+          }
         );
         
-        // Update the invoice object to return the correct amount
+        // Update the invoice object to return the correct amounts
         invoice.invoice_header.invoice_amount = totalAmount;
+        invoice.invoice_header.to_usd = toUsd;
       }
     }
     
@@ -147,14 +161,27 @@ export class MongoStorage implements IStorage {
       );
       
       // If the stored amount doesn't match the calculated amount, update it
-      if (invoice.invoice_header.invoice_amount !== totalAmount) {
+      if (invoice.invoice_header.invoice_amount !== totalAmount || !invoice.invoice_header.to_usd) {
+        // Convert to USD if needed
+        let toUsd = totalAmount;
+        if (invoice.invoice_header.currency_code === "INR") {
+          toUsd = totalAmount / 83; // Using approximate INR to USD conversion
+        } else if (invoice.invoice_header.currency_code === "EUR") {
+          toUsd = totalAmount * 1.08; // Using approximate EUR to USD conversion
+        }
+        
         await collection.updateOne(
           { "invoice_header.invoice_num": invoiceNum },
-          { $set: { "invoice_header.invoice_amount": totalAmount } }
+          { $set: { 
+              "invoice_header.invoice_amount": totalAmount,
+              "invoice_header.to_usd": toUsd
+            } 
+          }
         );
         
-        // Update the invoice object to return the correct amount
+        // Update the invoice object to return the correct amounts
         invoice.invoice_header.invoice_amount = totalAmount;
+        invoice.invoice_header.to_usd = toUsd;
       }
     }
     
@@ -178,14 +205,24 @@ export class MongoStorage implements IStorage {
       0
     );
     
+    // Convert to USD if needed
+    let toUsd = totalAmount;
+    const currencyCode = data.currency_code || currentInvoice.invoice_header.currency_code;
+    if (currencyCode === "INR") {
+      toUsd = totalAmount / 83; // Using approximate INR to USD conversion
+    } else if (currencyCode === "EUR") {
+      toUsd = totalAmount * 1.08; // Using approximate EUR to USD conversion
+    }
+    
     // Update only the specified fields in invoice_header
     const updateData: { [key: string]: any } = {};
     Object.entries(data).forEach(([key, value]) => {
       updateData[`invoice_header.${key}`] = value;
     });
     
-    // Always update the invoice_amount to reflect the sum of line_amount values
+    // Always update the invoice_amount and to_usd to reflect the sum of line_amount values
     updateData["invoice_header.invoice_amount"] = totalAmount;
+    updateData["invoice_header.to_usd"] = toUsd;
     
     const result = await collection.findOneAndUpdate(
       { "invoice_header.invoice_num": invoiceNum },
@@ -245,7 +282,7 @@ export class MongoStorage implements IStorage {
     // Calculate total amount using pipeline after updates
     const amountPipeline = [
       { $match: query },
-      { $group: { _id: null, total: { $sum: "$invoice_header.invoice_amount" } } }
+      { $group: { _id: null, total: { $sum: "$invoice_header.to_usd" } } }
     ];
     
     const amountResult = await collection.aggregate(amountPipeline).toArray();
@@ -258,7 +295,7 @@ export class MongoStorage implements IStorage {
         $group: { 
           _id: "$invoice_header.invoice_type", 
           count: { $sum: 1 }, 
-          amount: { $sum: "$invoice_header.invoice_amount" } 
+          amount: { $sum: "$invoice_header.to_usd" } 
         } 
       },
       { $sort: { count: -1 } }
@@ -277,7 +314,7 @@ export class MongoStorage implements IStorage {
       {
         $group: {
           _id: { $substr: ["$invoice_header.invoice_date", 0, 7] }, // Group by YYYY-MM
-          amount: { $sum: "$invoice_header.invoice_amount" }
+          amount: { $sum: "$invoice_header.to_usd" }
         }
       },
       { $sort: { _id: 1 } }
@@ -308,6 +345,38 @@ export class MongoStorage implements IStorage {
     
     const result = await collection.aggregate(pipeline).toArray();
     return result.map(item => item._id);
+  }
+
+  async getVendorSummary(): Promise<any[]> {
+    const db = this.client.db(this.dbName);
+    const collection = db.collection("invoices");
+
+    const pipeline = [
+      {
+        $group: {
+          _id: "$invoice_header.vendor_name",
+          total_invoices: { $sum: 1 },
+          total_amount_usd: { $sum: "$invoice_header.to_usd" },
+          last_invoice_date: { $max: "$invoice_header.invoice_date" },
+          currencies: { $addToSet: "$invoice_header.currency_code" }
+        }
+      },
+      {
+        $project: {
+          _id: 0,
+          vendor_name: "$_id",
+          total_invoices: 1,
+          total_amount_usd: 1,
+          last_invoice_date: 1,
+          currencies: 1
+        }
+      },
+      {
+        $sort: { total_amount_usd: -1 }
+      }
+    ];
+
+    return collection.aggregate(pipeline).toArray();
   }
 }
 

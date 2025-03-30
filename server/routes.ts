@@ -355,5 +355,16 @@ If you're uncertain or the query can't be answered with the available data, prov
     }
   });
 
+  // Get vendor summary
+  app.get("/api/vendors/summary", async (req, res) => {
+    try {
+      const vendors = await storage.getVendorSummary();
+      res.json(vendors);
+    } catch (error) {
+      console.error("Error fetching vendor summary:", error);
+      res.status(500).json({ message: "Failed to fetch vendor summary" });
+    }
+  });
+
   return httpServer;
 }
