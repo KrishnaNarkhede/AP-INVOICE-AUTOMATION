@@ -81,7 +81,7 @@ def process_email(service, msg_id, db):
         else:
             invoice_doc = extract_basic_invoice_details(message['payload'])
         
-        invoice_doc = convert_invoice_to_usd_and_status(invoice_doc)
+        invoice_doc = convert_invoice_to_inr_and_status(invoice_doc)
         
         # Check for existing invoice
         existing_invoice = invoices_collection.find_one({"invoice_header.invoice_num": invoice_doc["invoice_header"]["invoice_num"]})
@@ -101,5 +101,40 @@ def process_email(service, msg_id, db):
     except Exception as e:
         print(f"Error processing email: {e}")
         return None
+
+def convert_invoice_to_inr_and_status(invoice_doc):
+    """Convert invoice amounts to INR and add payment status."""
+    try:
+        # Get the currency rates
+        c = CurrencyRates()
+        
+        # Get the total amount in original currency
+        amount = invoice_doc["invoice_header"]["invoice_amount"]
+        currency = invoice_doc["invoice_header"]["currency_code"]
+        
+        # Convert to INR if not already in INR
+        if currency != "INR":
+            try:
+                # Get the conversion rate
+                rate = c.get_rate(currency, "INR")
+                amount_inr = amount * rate
+            except:
+                # Use fallback rates if API fails
+                if currency == "USD":
+                    amount_inr = amount * 83  # Approximate USD to INR rate
+                elif currency == "EUR":
+                    amount_inr = amount * 89.7  # Approximate EUR to INR rate
+                else:
+                    amount_inr = amount  # Default to same amount if unknown currency
+        else:
+            amount_inr = amount
+            
+        # Add the INR amount to the document
+        invoice_doc["invoice_header"]["to_inr"] = amount_inr
+        
+        return invoice_doc
+    except Exception as e:
+        print(f"Error converting currency: {e}")
+        return invoice_doc
 
 # ... rest of your existing code ... 

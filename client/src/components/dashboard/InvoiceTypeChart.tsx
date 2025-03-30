@@ -62,7 +62,7 @@ export default function InvoiceTypeChart({ data, isLoading }: InvoiceTypeChartPr
                       const item = props.payload;
                       return [
                         `Count: ${value} (${((value as number / totalInvoices) * 100).toFixed(1)}%)
-                         Amount: ${formatCurrency(item.amount)}`,
+                         Amount: ${formatCurrency(item.amount, "INR")}`,
                         item.name
                       ];
                     }}

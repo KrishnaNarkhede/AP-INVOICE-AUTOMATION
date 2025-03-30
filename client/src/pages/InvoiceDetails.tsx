@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRoute, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,6 +12,13 @@ import { formatCurrency, formatDate } from "@/lib/utils";
 import { Invoice } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import PDFViewer from "@/components/invoices/PDFViewer";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export default function InvoiceDetails() {
   const [, setLocation] = useLocation();
@@ -20,11 +27,48 @@ export default function InvoiceDetails() {
   const [activeTab, setActiveTab] = useState<string>("details");
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const { data: invoice, isLoading, error, refetch } = useQuery<Invoice>({
     queryKey: [`/api/invoices/${invoiceNum}`],
     enabled: !!invoiceNum,
   });
+
+  const updateStatusMutation = useMutation({
+    mutationFn: async ({ invoiceNum, status }: { invoiceNum: string; status: string }) => {
+      const response = await fetch(`/api/invoices/${invoiceNum}/status`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ status }),
+      });
+      if (!response.ok) {
+        throw new Error('Failed to update status');
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries([`/api/invoices/${invoiceNum}`]);
+      toast({
+        title: "Success",
+        description: "Invoice status has been updated successfully.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to update invoice status. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleStatusChange = (newStatus: string) => {
+    if (invoiceNum) {
+      updateStatusMutation.mutate({ invoiceNum, status: newStatus });
+    }
+  };
 
   useEffect(() => {
     if (error) {
@@ -109,7 +153,22 @@ export default function InvoiceDetails() {
         <h2 className="text-2xl font-bold text-gray-900">
           Invoice #{invoice_header.invoice_num}
         </h2>
-        <div className="flex space-x-3">
+        <div className="flex items-center space-x-3">
+          <Select
+            value={invoice?.invoice_header.invoice_status || ""}
+            onValueChange={handleStatusChange}
+          >
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Select status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Draft">Draft</SelectItem>
+              <SelectItem value="Pending">Pending</SelectItem>
+              <SelectItem value="Approved">Approved</SelectItem>
+              <SelectItem value="Rejected">Rejected</SelectItem>
+              <SelectItem value="Paid">Paid</SelectItem>
+            </SelectContent>
+          </Select>
           {invoice_header.pdf_link && (
             <Button variant="outline" onClick={() => window.open(invoice_header.pdf_link, "_blank")}>
               <Download className="mr-2 h-4 w-4" />
@@ -120,7 +179,6 @@ export default function InvoiceDetails() {
             <Button 
               variant="outline" 
               onClick={() => {
-                // Create a link to download the base64 PDF data
                 const link = document.createElement('a');
                 link.href = `data:application/pdf;base64,${invoice_header.pdf_base64}`;
                 link.download = `Invoice_${invoice_header.invoice_num}.pdf`;

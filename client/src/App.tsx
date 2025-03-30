@@ -6,6 +6,7 @@ import Invoices from "@/pages/Invoices";
 import InvoiceDetails from "@/pages/InvoiceDetails";
 import AIAssistant from "@/pages/AIAssistant";
 import Vendors from "@/pages/Vendors";
+import Settings from "@/pages/Settings";
 import Sidebar from "@/components/Sidebar";
 import { Toaster } from "@/components/ui/toaster";
 import { useState } from "react";
@@ -29,6 +30,7 @@ function Router() {
       <Route path="/invoices/:invoiceNum" component={InvoiceDetails} />
       <Route path="/ai-assistant" component={AIAssistant} />
       <Route path="/vendors" component={Vendors} />
+      <Route path="/settings" component={Settings} />
       <Route component={NotFound} />
     </Switch>
   );

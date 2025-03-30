@@ -64,12 +64,12 @@ export default function MonthlyChart({ data, isLoading }: MonthlyChartProps) {
                 <YAxis 
                   tickFormatter={(value) => 
                     value === 0 ? '0' : 
-                    value >= 1000 ? `$${(value / 1000).toFixed(0)}k` : 
-                    `$${value}`
+                    value >= 1000 ? `₹${(value / 1000).toFixed(0)}k` : 
+                    `₹${value}`
                   } 
                 />
                 <Tooltip 
-                  formatter={(value) => [formatCurrency(value as number), "Amount"]}
+                  formatter={(value) => [formatCurrency(value as number, "INR"), "Amount"]}
                   labelFormatter={(label) => `Month: ${label}`}
                 />
                 <Bar 

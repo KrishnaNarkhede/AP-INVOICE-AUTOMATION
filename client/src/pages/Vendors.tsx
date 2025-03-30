@@ -11,7 +11,7 @@ interface VendorSummary {
   email: string;
   address?: string;
   total_invoices: number;
-  total_amount_usd: number;
+  total_amount_inr: number;
   last_invoice_date: string;
   currencies: string[];
 }
@@ -35,7 +35,7 @@ interface InvoiceHeader {
   payment_term: string;
   invoice_type: string;
   organization_code: string;
-  to_usd: number;
+  to_inr: number;
 }
 
 interface Invoice {
@@ -64,7 +64,7 @@ function transformInvoiceData(invoice: Invoice): {
   return {
     id: invoice.invoice_header.invoice_num,
     date: invoice.invoice_header.invoice_date,
-    amount: invoice.invoice_header.to_usd || invoice.invoice_header.invoice_amount,
+    amount: invoice.invoice_header.to_inr || invoice.invoice_header.invoice_amount,
     status: invoice.invoice_header.payment_term === 'Immediate' ? 'paid' : 'pending',
     type: invoice.invoice_header.invoice_type
   };
@@ -75,7 +75,7 @@ function WelcomeSection({ vendors }: { vendors: VendorSummary[] | undefined }) {
 
   const totalVendors = vendors.length;
   const totalInvoices = vendors.reduce((sum, v) => sum + v.total_invoices, 0);
-  const totalAmount = vendors.reduce((sum, v) => sum + v.total_amount_usd, 0);
+  const totalAmount = vendors.reduce((sum, v) => sum + v.total_amount_inr, 0);
   const uniqueCurrencies = new Set(vendors.flatMap(v => v.currencies)).size;
 
   // Calculate month-over-month growth
@@ -121,7 +121,7 @@ function WelcomeSection({ vendors }: { vendors: VendorSummary[] | undefined }) {
               <span className="text-sm font-medium text-gray-500">Total Amount</span>
               <DollarSign className="h-4 w-4 text-yellow-500" />
             </div>
-            <div className="text-2xl font-semibold text-gray-900">{formatCurrency(totalAmount)}</div>
+            <div className="text-2xl font-semibold text-gray-900">{formatCurrency(totalAmount, "INR")}</div>
           </div>
           <div className="bg-white rounded-lg border p-4 shadow-sm">
             <div className="flex items-center justify-between mb-2">

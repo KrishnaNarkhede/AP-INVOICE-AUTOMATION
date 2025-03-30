@@ -8,7 +8,7 @@ interface VendorDetails {
   email: string;
   address?: string;
   total_invoices: number;
-  total_amount_usd: number;
+  total_amount_inr: number;
   last_invoice_date: string;
   currencies: string[];
 }
@@ -32,7 +32,7 @@ interface InvoiceHeader {
   payment_term: string;
   invoice_type: string;
   organization_code: string;
-  to_usd: number;
+  to_inr: number;
 }
 
 interface Invoice {
@@ -74,7 +74,7 @@ export function VendorDetail({ vendor, invoices, isLoading }: VendorDetailProps)
       }
       
       invoicesByMonth[monthKey].invoices.push(invoice);
-      invoicesByMonth[monthKey].totalAmount += invoice.invoice_header.to_usd || invoice.invoice_header.invoice_amount;
+      invoicesByMonth[monthKey].totalAmount += invoice.invoice_header.to_inr || invoice.invoice_header.invoice_amount;
       invoicesByMonth[monthKey].count += 1;
     });
   }
@@ -83,7 +83,7 @@ export function VendorDetail({ vendor, invoices, isLoading }: VendorDetailProps)
   const analytics = {
     totalInvoices: invoices?.length || 0,
     averageInvoiceAmount: invoices && invoices.length > 0 
-      ? invoices.reduce((sum, inv) => sum + (inv.invoice_header.to_usd || inv.invoice_header.invoice_amount), 0) / invoices.length 
+      ? invoices.reduce((sum, inv) => sum + (inv.invoice_header.to_inr || inv.invoice_header.invoice_amount), 0) / invoices.length 
       : 0,
     paymentStatusDistribution: {
       paid: invoices?.filter(inv => inv.invoice_header.payment_term === 'Immediate').length || 0,
@@ -184,7 +184,7 @@ export function VendorDetail({ vendor, invoices, isLoading }: VendorDetailProps)
               <DollarSign className="h-4 w-4 text-gray-400" />
             </div>
             <div className="mt-2 text-2xl font-semibold text-gray-900">
-              {formatCurrency(vendor.total_amount_usd)}
+              {formatCurrency(vendor.total_amount_inr, "INR")}
             </div>
           </div>
           <div className="rounded-lg border bg-white p-4 shadow-sm">
@@ -285,7 +285,7 @@ export function VendorDetail({ vendor, invoices, isLoading }: VendorDetailProps)
               <DollarSign className="h-5 w-5 text-gray-400" />
             </div>
             <div className="text-2xl font-semibold text-gray-900">
-              {formatCurrency(analytics.averageInvoiceAmount)}
+              {formatCurrency(analytics.averageInvoiceAmount, "INR")}
             </div>
           </div>
         </div>
@@ -316,7 +316,7 @@ export function VendorDetail({ vendor, invoices, isLoading }: VendorDetailProps)
                 <div className="mb-2 flex items-center justify-between">
                   <h4 className="font-medium text-gray-900">{month}</h4>
                   <div className="text-sm text-gray-500">
-                    {invoicesByMonth[month].count} invoices • {formatCurrency(invoicesByMonth[month].totalAmount)}
+                    {invoicesByMonth[month].count} invoices • {formatCurrency(invoicesByMonth[month].totalAmount, "INR")}
                   </div>
                 </div>
                 <div className="space-y-2">
@@ -341,7 +341,7 @@ export function VendorDetail({ vendor, invoices, isLoading }: VendorDetailProps)
                           </div>
                         </div>
                         <div className="text-right">
-                          <div className="font-medium text-gray-900">{formatCurrency(invoice.invoice_header.to_usd || invoice.invoice_header.invoice_amount)}</div>
+                          <div className="font-medium text-gray-900">{formatCurrency(invoice.invoice_header.to_inr || invoice.invoice_header.invoice_amount, "INR")}</div>
                           <div className="text-sm text-gray-500">
                             {new Date(invoice.invoice_header.invoice_date).toLocaleDateString()}
                           </div>

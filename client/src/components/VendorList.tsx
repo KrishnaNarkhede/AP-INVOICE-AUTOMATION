@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChevronRight, Mail, Search, Building2, DollarSign } from "lucide-react";
+import { ChevronRight, Mail, Search, Building2 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 
 interface VendorDetails {
@@ -7,7 +7,7 @@ interface VendorDetails {
   email: string;
   address?: string;
   total_invoices: number;
-  total_amount_usd: number;
+  total_amount_inr: number;
   last_invoice_date: string;
   currencies: string[];
 }
@@ -68,8 +68,7 @@ export function VendorList({ vendors, selectedVendor, onVendorSelect }: VendorLi
                       <span className="ml-1">invoices</span>
                     </div>
                     <div className="flex items-center text-sm text-gray-500">
-                      <DollarSign className="h-4 w-4 mr-1" />
-                      <span className="font-medium">{formatCurrency(vendor.total_amount_usd)}</span>
+                      <span className="font-medium">{formatCurrency(vendor.total_amount_inr, "INR")}</span>
                     </div>
                   </div>
                 </div>
